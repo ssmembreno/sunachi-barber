@@ -15,8 +15,11 @@ return new class extends Migration
             $table->id();
             $table->timestamps();
             $table->string('name');
-            $table->string('phone');
+            $table->integer('phone')->unique();
             $table->text('notes')->nullable();
+            $table->foreignId('user_id')->nullable()->constrained()->onDelete('cascade');
+            $table->index('user_id');
+            $table->index('phone');
             $table->softDeletes();
         });
     }
