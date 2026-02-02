@@ -165,8 +165,45 @@ const calendarOptions = computed(() => ({
   },
 
   // Selección de franja
-  select: (selectionInfo) => {
-    initialSelection.value = selectionInfo
+  select: (info) => {
+    const toLocalISO = (d) => {
+        const pad = (n) => n < 10 ? '0' + n : n
+        return d.getFullYear() +
+            '-' + pad(d.getMonth() + 1) +
+            '-' + pad(d.getDate()) +
+            'T' + pad(d.getHours()) +
+            ':' + pad(d.getMinutes())
+    }
+
+    initialSelection.value = {
+        start: info.start,
+        end: info.end,
+        startStr: toLocalISO(info.start),
+        endStr: toLocalISO(info.end)
+    }
+    createModalOpen.value = true
+  },
+
+  // Click simple en fecha
+  dateClick: (info) => {
+    const start = info.date
+    const end = new Date(start.getTime() + 30 * 60000)
+    
+    const toLocalISO = (d) => {
+        const pad = (n) => n < 10 ? '0' + n : n
+        return d.getFullYear() +
+            '-' + pad(d.getMonth() + 1) +
+            '-' + pad(d.getDate()) +
+            'T' + pad(d.getHours()) +
+            ':' + pad(d.getMinutes())
+    }
+
+    initialSelection.value = {
+        start: start,
+        end: end,
+        startStr: toLocalISO(start),
+        endStr: toLocalISO(end)
+    }
     createModalOpen.value = true
   },
 }))
@@ -413,28 +450,33 @@ const calendarOptions = computed(() => ({
           </button>
         </div>
 
-        <div class="mt-5 flex flex-wrap gap-2">
+        <div class="mt-5 grid grid-cols-2 gap-3">
+          <!-- Finalizar -->
           <button
-            v-if="selectedEvent?.extendedProps?.status === 'confirmed' || selectedEvent?.extendedProps?.status === 'pending'"
+            v-if="['pending', 'confirmed'].includes(selectedEvent?.extendedProps?.status)"
             type="button"
             class="rounded-xl bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 transition-colors"
             @click="updateStatus('completed')"
           >
-            Finalizar Cita
+            Finalizar
           </button>
           
+
+
+          <!-- No asistió -->
           <button
-            v-if="selectedEvent?.extendedProps?.status !== 'noshow' && selectedEvent?.extendedProps?.status !== 'cancelled' && selectedEvent?.extendedProps?.status !== 'completed'"
+            v-if="['pending', 'confirmed'].includes(selectedEvent?.extendedProps?.status)"
             type="button"
-            class="rounded-xl bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+            class="rounded-xl bg-red-500 px-4 py-2 text-sm font-medium text-white hover:bg-red-600 transition-colors"
             @click="updateStatus('noshow')"
           >
             No se presentó
           </button>
 
+          <!-- Cerrar -->
           <button
             type="button"
-            class="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
+            class="col-span-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors"
             @click="closeModal"
           >
             Cerrar
