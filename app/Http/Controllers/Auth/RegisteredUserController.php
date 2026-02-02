@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\Client;
 
 class RegisteredUserController extends Controller
 {
@@ -36,15 +37,26 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        $client = Client::firstOrCreate(
+            ['phone' => $request->phone],
+            ['name' => $request->name]
+        );
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'client_id' => $client->id,
+            'role' => 'client',
         ]);
 
         event(new Registered($user));
 
         Auth::login($user);
+
+        if ($user->isClient()) {
+            return redirect(route('welcome'));
+        }
 
         return redirect(route('dashboard', absolute: false));
     }

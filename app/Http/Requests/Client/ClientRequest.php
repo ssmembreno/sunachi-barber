@@ -23,7 +23,7 @@ class ClientRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:40',
-            'phone' => 'numeric',
+            'phone' => 'required|string|unique:clients,phone',
             'notes' => 'nullable|string',
         ];
     }
@@ -34,8 +34,9 @@ class ClientRequest extends FormRequest
             'name.required' => 'El nombre es obligatorio.',
             'name.string' => 'El nombre debe ser una cadena de texto.',
             'name.max' => 'El nombre debe tener un máximo de 40 caracteres.',
-            'phone.numeric' => 'El teléfono debe ser un número.',
-            'phone.max' => 'El teléfono debe tener un máximo de 15 caracteres.',
+            'phone.required' => 'El teléfono es obligatorio.',
+            'phone.string' => 'El teléfono debe ser una cadena de texto.',
+            'phone.unique' => 'El teléfono ya lo usa otro cliente.',
             'notes.string' => 'Las notas deben ser una cadena de texto.',
         ];
     }

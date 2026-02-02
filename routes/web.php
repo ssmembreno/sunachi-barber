@@ -5,6 +5,8 @@ use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use App\Http\Controllers\Clients\ClientController;
+use App\Http\Controllers\Calendar\CalendarAdminController;
+use App\Http\Controllers\Calendar\CalendarClientController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -13,16 +15,20 @@ Route::get('/', function () {
         'laravelVersion' => Application::VERSION,
         'phpVersion' => PHP_VERSION,
     ]);
-});
+})->name('welcome');
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+Route::middleware(['auth', 'verified', 'role:admin,barber'])->group(function () {
+
+    Route::get('/dashboard', function () {return Inertia::render('Dashboard');})->name('dashboard');   
+
+    // Calendar
+    Route::get('/calendar', function() {return Inertia::render('Admin/Calendar/CalendarAdmin');})->name('calendar.admin');
+    Route::get('/calendar/events', [CalendarAdminController::class, 'events'])->name('calendar.events');
+    Route::get('/calendar/formData', [CalendarAdminController::class, 'formData'])->name('calendar.formData');
+    Route::post('/calendar/appointmentsCreate', [CalendarAdminController::class, 'store'])->name('calendar.store');
+    Route::patch('/calendar/appointments/{appointment}/status', [CalendarAdminController::class, 'updateStatus'])->name('calendar.updateStatus');
+
 
     // Clients
     Route::get('/clients', [ClientController::class, 'index'])->name('clients.index');
@@ -35,7 +41,18 @@ Route::middleware('auth')->group(function () {
     Route::get('/clients/trash', [ClientController::class, 'trash'])->name('clients.trash');
     Route::put('/clients/{client}/restore', [ClientController::class, 'restore'])->name('clients.restore')->withTrashed();
     Route::delete('/clients/{client}/forceDelete', [ClientController::class, 'forceDelete'])->name('clients.forceDelete')->withTrashed();
+});
 
+    // calendar clients
+    Route::get('/booking', [CalendarClientController::class, 'index'])->name('booking.index');
+    Route::get('/booking/events', [CalendarClientController::class, 'events'])->name('booking.events');
+    Route::post('/booking/appointments', [CalendarClientController::class, 'store'])->name('booking.appointments.store');
+
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
 require __DIR__.'/auth.php';
