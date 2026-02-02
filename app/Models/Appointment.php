@@ -20,7 +20,6 @@ class Appointment extends Model
         'cancelled_at',
         'cancel_reason',
         'client_id',
-        'client_user_id',
         'service_id',
         'created_by',
         'barber_id',

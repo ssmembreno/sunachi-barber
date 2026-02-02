@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use App\Http\Requests\AdminCalendar\CalendarAdminRequest;
 use Inertia\Inertia;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 
 class CalendarAdminController extends Controller
 {
@@ -101,7 +102,7 @@ class CalendarAdminController extends Controller
             'clients' => Client::orderBy('name')->get(['id', 'name', 'phone']),
             'services' => Services::where('is_active', true)->orderBy('name')->get(['id', 'name', 'price']),
             'barbers' => User::all(['id', 'name']),
-            'current_user_id' => auth()->id(),
+            'current_user_id' => Auth::id(),
         ]);
     }
 

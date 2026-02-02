@@ -60,7 +60,18 @@ const handleSubmit = async () => {
   loading.value = true
   errors.value = {}
   try {
-    await axios.post(route('calendar.store'), formData.value)
+    // Clone data to avoid modifying the form while sending
+    const payload = { ...formData.value }
+    
+    // Ensure we send ISO UTC strings so backend stores the correct absolute time
+    if (payload.start_at) {
+        payload.start_at = new Date(payload.start_at).toISOString()
+    }
+    if (payload.end_at) {
+        payload.end_at = new Date(payload.end_at).toISOString()
+    }
+
+    await axios.post(route('calendar.store'), payload)
     emit('created')
     close()
   } catch (error) {
