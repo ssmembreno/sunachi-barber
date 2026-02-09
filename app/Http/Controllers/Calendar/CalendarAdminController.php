@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Client;
 use App\Models\Services;
+use App\Models\Barber;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Requests\AdminCalendar\CalendarAdminRequest;
@@ -25,7 +26,7 @@ class CalendarAdminController extends Controller
         ]);
 
         $q = Appointment::query()
-            ->with(['client:id,name', 'service:id,name'])
+            ->with(['client:id,name', 'service:id,name', 'barber:id,name'])
             ->where('start_at', '>=', $request->start)
             ->where('start_at', '<', $request->end);
 
@@ -33,7 +34,7 @@ class CalendarAdminController extends Controller
         // if ($request->filled('barber_id')) {
         //     $q->where('barber_id', $request->barber_id);
         // }
-
+        
         // // filtrar por estado
         // if ($request->filled('status')) {
         //     $q->where('status', $request->status);
@@ -45,10 +46,11 @@ class CalendarAdminController extends Controller
         $events = $appointments->map(function ($a) {
             $clientName = $a->client->name ?? 'Cliente';
             $serviceName = $a->service->name ?? 'Servicio';
+            $barberName = $a->barber->name ?? 'Barbero';
 
             return [
                 'id' => (string) $a->id,
-                'title' => $serviceName . ' - ' . $clientName,
+                'title' => $serviceName . ' - ' . $clientName . ' - ' . $barberName,
                 'start' => $a->start_at?->toISOString(),
                 'end' => $a->end_at?->toISOString(),
                 'extendedProps' => [
@@ -101,7 +103,7 @@ class CalendarAdminController extends Controller
         return response()->json([
             'clients' => Client::orderBy('name')->get(['id', 'name', 'phone']),
             'services' => Services::where('is_active', true)->orderBy('name')->get(['id', 'name', 'price']),
-            'barbers' => User::all(['id', 'name']),
+            'barbers' => Barber::where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'current_user_id' => Auth::id(),
         ]);
     }

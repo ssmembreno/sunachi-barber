@@ -389,14 +389,6 @@ const calendarOptions = computed(() => ({
       <div class="flex items-center gap-2">
         <button
           type="button"
-          class="relative rounded-2xl border border-gray-200 bg-white p-2 sm:p-4 shadow-xl dark:border-gray-800 dark:bg-gray-900 transition-all"
-          @click="goToday"
-        >
-          Hoy
-        </button>
-
-        <button
-          type="button"
           class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm hover:bg-gray-50 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
           @click="toggleWeekends"
         >

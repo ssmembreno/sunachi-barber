@@ -55,7 +55,7 @@ const submit = () => {
     <div class="space-y-4">
       <!-- Nombre -->
       <div>
-        <label class="text-sm font-medium text-gray-800 dark:text-gray-200">
+        <label class="text-sm font-medium text-gray-900 dark:text-gray-200">
           Nombre <span class="text-red-500">*</span>
         </label>
         <input
@@ -75,7 +75,7 @@ const submit = () => {
 
       <!-- Teléfono -->
       <div>
-        <label class="text-sm font-medium text-gray-800 dark:text-gray-200">
+        <label class="text-sm font-medium text-gray-900 dark:text-gray-200">
           Teléfono <span class="text-red-500">*</span>
         </label>
         <input
@@ -95,7 +95,7 @@ const submit = () => {
 
       <!-- Notas -->
       <div>
-        <label class="text-sm font-medium text-gray-800 dark:text-gray-200">
+        <label class="text-sm font-medium text-gray-900 dark:text-gray-200">
           Notas
         </label>
         <textarea
