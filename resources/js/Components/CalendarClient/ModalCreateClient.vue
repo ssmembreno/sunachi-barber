@@ -1,8 +1,7 @@
 <script setup>
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onUnmounted } from 'vue'
 import { usePage } from '@inertiajs/vue3'
 import axios from 'axios'
-import ModalBase from '@/Components/UI/ModalBase.vue'
 
 const props = defineProps({
   modelValue: Boolean,
@@ -102,151 +101,183 @@ watch(() => props.barbers, (val) => {
     }
 }, { immediate: true })
 
+// Modal Logic (Escape key, etc)
+const onKeydown = (e) => {
+    if (e.key === 'Escape' && props.modelValue) close()
+}
+
+watch(() => props.modelValue, (val) => {
+    if (val) document.addEventListener('keydown', onKeydown)
+    else document.removeEventListener('keydown', onKeydown)
+}, { immediate: true })
+
+onUnmounted(() => {
+    document.removeEventListener('keydown', onKeydown)
+})
 </script>
 
 <template>
-  <ModalBase :modelValue="modelValue" @update:modelValue="close" maxWidth="max-w-xl">
-    <template #title>
-        <span class="text-xl font-black italic tracking-tighter text-white uppercase">
-            NUEVA <span class="text-amber-500">RESERVA</span>
-        </span>
-    </template>
-
-    <div class="space-y-6">
-        
-        <!-- Authenticated User Info -->
-        <div v-if="user" class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3">
-             <div class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-black font-bold">
-                {{ user.name.charAt(0) }}
-             </div>
-             <div>
-                <p class="text-xs font-bold uppercase tracking-widest text-amber-500">Reservando como</p>
-                <p class="font-bold text-white text-lg">{{ user.name }}</p>
-             </div>
+  <teleport to="body">
+    <div v-show="modelValue" class="fixed inset-0 z-[60] overflow-y-auto px-4 py-6 sm:px-0 flex items-center justify-center">
+        <!-- Backdrop -->
+        <div class="fixed inset-0 transform transition-all" @click="close">
+            <div class="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm"></div>
         </div>
 
-        <!-- Guest Fields -->
-        <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div class="space-y-2">
-                <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Tu Nombre</label>
-                <input 
-                    v-model="formData.client_name" 
-                    type="text" 
-                    class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none"
-                    placeholder="Ej. Juan Pérez"
-                />
-                <p v-if="errors.client_name" class="text-xs text-red-500 font-bold mt-1">{{ errors.client_name[0] }}</p>
+        <!-- Panel -->
+        <div class="relative w-full max-w-xl transform rounded-2xl bg-zinc-950 border border-zinc-800 shadow-2xl shadow-black transition-all sm:w-full sm:mx-auto">
+            
+            <!-- Header -->
+            <div class="flex items-center justify-between px-6 py-5 border-b border-zinc-800">
+                <span class="text-xl font-black italic tracking-tighter text-white uppercase">
+                    NUEVA <span class="text-amber-500">RESERVA</span>
+                </span>
+                <button @click="close" class="text-zinc-500 hover:text-white transition-colors focus:outline-none">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
-            <div class="space-y-2">
-                <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Teléfono</label>
-                <input 
-                    v-model="formData.client_phone" 
-                    type="text" 
-                    class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none"
-                    placeholder="Ej. 600123456"
-                />
-                <p v-if="errors.client_phone" class="text-xs text-red-500 font-bold mt-1">{{ errors.client_phone[0] }}</p>
-            </div>
-        </div>
 
-        <!-- Service Selection -->
-        <div class="space-y-2">
-            <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Servicio</label>
-            <div class="relative">
-                <select 
-                    v-model="formData.service_id" 
-                    class="w-full appearance-none bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none"
-                >
-                    <option value="" class="bg-zinc-900 text-zinc-500">Selecciona un servicio...</option>
-                    <option v-for="service in services" :key="service.id" :value="service.id" class="bg-zinc-900">
-                        {{ service.name }} - ${{ service.price }}
-                    </option>
-                </select>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-zinc-500">
-                    <svg class="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+            <!-- Body -->
+            <div class="p-6 space-y-6 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                
+                <!-- Authenticated User Info -->
+                <div v-if="user" class="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center gap-3">
+                     <div class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-black font-bold">
+                        {{ user.name.charAt(0) }}
+                     </div>
+                     <div>
+                        <p class="text-xs font-bold uppercase tracking-widest text-amber-500">Reservando como</p>
+                        <p class="font-bold text-white text-lg">{{ user.name }}</p>
+                     </div>
                 </div>
-            </div>
-            <p v-if="errors.service_id" class="text-xs text-red-500 font-bold mt-1">{{ errors.service_id[0] }}</p>
-        </div>
 
-         <!-- Barber Selection -->
-         <div class="space-y-2">
-            <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Profesional</label>
-            <div class="relative">
-                <select 
-                    v-model="formData.barber_id" 
-                    class="w-full appearance-none bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none"
-                >
-                    <option v-for="barber in barbers" :key="barber.id" :value="barber.id" class="bg-zinc-900">
-                        {{ barber.name }}
-                    </option>
-                </select>
-                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-zinc-500">
-                    <svg class="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                <!-- Guest Fields -->
+                <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Tu Nombre</label>
+                        <input 
+                            v-model="formData.client_name" 
+                            type="text" 
+                            class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none"
+                            placeholder="Ej. Juan Pérez"
+                        />
+                        <p v-if="errors.client_name" class="text-xs text-red-500 font-bold mt-1">{{ errors.client_name[0] }}</p>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Teléfono</label>
+                        <input 
+                            v-model="formData.client_phone" 
+                            type="text" 
+                            class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none"
+                            placeholder="Ej. 600123456"
+                        />
+                        <p v-if="errors.client_phone" class="text-xs text-red-500 font-bold mt-1">{{ errors.client_phone[0] }}</p>
+                    </div>
                 </div>
+
+                <!-- Service Selection -->
+                <div class="space-y-2">
+                    <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Servicio</label>
+                    <div class="relative">
+                        <select 
+                            v-model="formData.service_id" 
+                            class="w-full appearance-none bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none"
+                        >
+                            <option value="" class="bg-zinc-900 text-zinc-500">Selecciona un servicio...</option>
+                            <option v-for="service in services" :key="service.id" :value="service.id" class="bg-zinc-900">
+                                {{ service.name }} - ${{ service.price }}
+                            </option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-zinc-500">
+                            <svg class="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        </div>
+                    </div>
+                    <p v-if="errors.service_id" class="text-xs text-red-500 font-bold mt-1">{{ errors.service_id[0] }}</p>
+                </div>
+
+                 <!-- Barber Selection -->
+                 <div class="space-y-2">
+                    <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Profesional</label>
+                    <div class="relative">
+                        <select 
+                            v-model="formData.barber_id" 
+                            class="w-full appearance-none bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none"
+                        >
+                            <option v-for="barber in barbers" :key="barber.id" :value="barber.id" class="bg-zinc-900">
+                                {{ barber.name }}
+                            </option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-zinc-500">
+                            <svg class="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        </div>
+                    </div>
+                    <p v-if="errors.barber_id" class="text-xs text-red-500 font-bold mt-1">{{ errors.barber_id[0] }}</p>
+                </div>
+
+                <!-- Time Selection -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                     <div class="space-y-2">
+                        <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Inicio</label>
+                        <input 
+                            v-model="formData.start_at" 
+                            type="datetime-local" 
+                            style="color-scheme: dark;"
+                            class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none"
+                        />
+                    </div>
+                     <div class="space-y-2">
+                        <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Fin</label>
+                        <input 
+                            v-model="formData.end_at" 
+                            type="datetime-local" 
+                            style="color-scheme: dark;"
+                            class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none"
+                        />
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="space-y-2">
+                     <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Nota (Opcional)</label>
+                     <textarea 
+                        v-model="formData.client_notes" 
+                        rows="2"
+                        class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none resize-none"
+                        placeholder="Detalles adicionales..."
+                     ></textarea>
+                </div>
+
+                <!-- Global Error -->
+                <div v-if="errors.message" class="p-4 bg-red-900/30 border border-red-900/50 text-red-200 rounded-lg text-sm font-medium">
+                    {{ errors.message }}
+                </div>
+                
+                 <!-- Client Error -->
+                 <div v-if="errors.client" class="p-4 bg-red-900/30 border border-red-900/50 text-red-200 rounded-lg text-sm font-medium">
+                    {{ errors.client }}
+                </div>
+
             </div>
-            <p v-if="errors.barber_id" class="text-xs text-red-500 font-bold mt-1">{{ errors.barber_id[0] }}</p>
-        </div>
 
-        <!-- Time Selection -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-             <div class="space-y-2">
-                <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Inicio</label>
-                <input 
-                    v-model="formData.start_at" 
-                    type="datetime-local" 
-                    style="color-scheme: dark;"
-                    class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none"
-                />
-            </div>
-             <div class="space-y-2">
-                <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Fin</label>
-                <input 
-                    v-model="formData.end_at" 
-                    type="datetime-local" 
-                    style="color-scheme: dark;"
-                    class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none"
-                />
+            <!-- Footer -->
+            <div class="px-6 py-4 bg-zinc-900/50 border-t border-zinc-800 flex justify-end gap-3 rounded-b-2xl">
+                 <button 
+                    @click="close" 
+                    class="px-6 py-3 text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    @click="handleSubmit" 
+                    :disabled="loading"
+                    class="px-6 py-3 bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold uppercase tracking-widest rounded-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-amber-500/20"
+                  >
+                    {{ loading ? 'Procesando...' : 'Confirmar Reserva' }}
+                  </button>
             </div>
         </div>
-
-        <!-- Notes -->
-        <div class="space-y-2">
-             <label class="text-xs font-bold uppercase tracking-widest text-zinc-500">Nota (Opcional)</label>
-             <textarea 
-                v-model="formData.client_notes" 
-                rows="2"
-                class="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none resize-none"
-                placeholder="Detalles adicionales..."
-             ></textarea>
-        </div>
-
-        <!-- Global Error -->
-        <div v-if="errors.message" class="p-4 bg-red-900/30 border border-red-900/50 text-red-200 rounded-lg text-sm font-medium">
-            {{ errors.message }}
-        </div>
-        
-         <!-- Client Error -->
-         <div v-if="errors.client" class="p-4 bg-red-900/30 border border-red-900/50 text-red-200 rounded-lg text-sm font-medium">
-            {{ errors.client }}
-        </div>
-
     </div>
-
-    <template #footer>
-      <button 
-        @click="close" 
-        class="px-6 py-3 text-xs font-bold uppercase tracking-widest text-zinc-400 hover:text-white transition-colors"
-      >
-        Cancelar
-      </button>
-      <button 
-        @click="handleSubmit" 
-        :disabled="loading"
-        class="ml-3 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold uppercase tracking-widest rounded-lg transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg shadow-amber-500/20"
-      >
-        {{ loading ? 'Procesando...' : 'Confirmar Reserva' }}
-      </button>
-    </template>
-  </ModalBase>
+  </teleport>
 </template>

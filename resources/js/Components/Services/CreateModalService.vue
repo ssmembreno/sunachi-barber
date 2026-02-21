@@ -11,8 +11,10 @@ const emit = defineEmits(['update:modelValue'])
 
 const form = useForm({
   name: '',
-  phone: '',
-  notes: '',
+  description: '',
+  price: '',
+  duration_minutes: '',
+  is_active: true,
 })
 
 const close = () => emit('update:modelValue', false)
@@ -26,7 +28,7 @@ watch(
 )
 
 const submit = () => {
-  form.post(route('clients.store'), {
+  form.post(route('services.store'), {
     preserveScroll: true,
     onSuccess: () => {
       form.reset()
@@ -49,7 +51,7 @@ const submit = () => {
     </p>
 
     <template #title>
-      Nuevo cliente
+      Nuevo servicio
     </template>
 
     <div class="space-y-4">
@@ -73,13 +75,33 @@ const submit = () => {
         </p>
       </div>
 
-      <!-- Teléfono -->
+      <!-- Descripción -->
       <div>
         <label class="text-sm font-medium text-gray-900 dark:text-gray-200">
-          Teléfono <span class="text-red-500">*</span>
+          Descripción <span class="text-red-500">*</span>
         </label>
         <input
-          v-model="form.phone"
+          v-model="form.description"
+          placeholder="Ejemplo: Corte de cabello profesional"
+          class="mt-1 w-full rounded-lg px-3 py-2 text-sm
+                 bg-white dark:bg-gray-900
+                 border border-gray-300 dark:border-gray-800
+                 text-gray-900 dark:text-gray-200
+                 placeholder-gray-400 dark:placeholder-gray-500
+                 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        />
+        <p v-if="form.errors.description" class="text-sm text-red-500 mt-1">
+          {{ form.errors.description }}
+        </p>
+      </div>
+
+      <!-- Precio -->
+      <div>
+        <label class="text-sm font-medium text-gray-900 dark:text-gray-200">
+          Precio <span class="text-red-500">*</span>
+        </label>
+        <input
+          v-model="form.price"
           placeholder="Ejemplo: 123456789"
           class="mt-1 w-full rounded-lg px-3 py-2 text-sm
                  bg-white dark:bg-gray-900
@@ -88,20 +110,19 @@ const submit = () => {
                  placeholder-gray-400 dark:placeholder-gray-500
                  focus:ring-2 focus:ring-blue-500 focus:outline-none"
         />
-        <p v-if="form.errors.phone" class="text-sm text-red-500 mt-1">
-          {{ form.errors.phone }}
+        <p v-if="form.errors.price" class="text-sm text-red-500 mt-1">
+          {{ form.errors.price }}
         </p>
       </div>
 
-      <!-- Notas -->
+      <!-- Duración -->
       <div>
         <label class="text-sm font-medium text-gray-900 dark:text-gray-200">
-          Notas
+          Duración <span class="text-red-500">*</span>
         </label>
-        <textarea
-          v-model="form.notes"
-          rows="3"
-          placeholder="Ejemplo: Cliente antiguo, recurrente"
+        <input
+          v-model="form.duration_minutes"
+          placeholder="Ejemplo: 123456789"
           class="mt-1 w-full rounded-lg px-3 py-2 text-sm
                  bg-white dark:bg-gray-900
                  border border-gray-300 dark:border-gray-800
@@ -109,10 +130,11 @@ const submit = () => {
                  placeholder-gray-400 dark:placeholder-gray-500
                  focus:ring-2 focus:ring-blue-500 focus:outline-none"
         />
-        <p v-if="form.errors.notes" class="text-sm text-red-500 mt-1">
-          {{ form.errors.notes }}
+        <p v-if="form.errors.duration_minutes" class="text-sm text-red-500 mt-1">
+          {{ form.errors.duration_minutes }}
         </p>
       </div>
+
     </div>
 
     <template #footer>

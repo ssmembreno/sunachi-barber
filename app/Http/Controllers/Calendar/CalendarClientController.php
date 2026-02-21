@@ -11,13 +11,14 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\Client;
 use App\Models\Services;
 use Illuminate\Validation\ValidationException;
+use App\Models\Barber;
 
 class CalendarClientController extends Controller
 {
     public function index()
     {
         $services = Services::all(); // Optionally filter active
-        $barbers = \App\Models\User::whereIn('role', ['admin', 'barber'])->get();
+        $barbers = Barber::all();
 
         $lastReservations = [];
         $user = Auth::user();
@@ -134,7 +135,7 @@ class CalendarClientController extends Controller
 
     $rules = [
         'service_id' => ['required', 'integer', 'exists:services,id'],
-        'barber_id'  => ['required', 'integer', 'exists:users,id'],
+        'barber_id'  => ['required', 'integer', 'exists:barber,id'],
         'start_at'   => ['required', 'date'],
         'end_at'     => ['required', 'date', 'after:start_at'],
         'client_notes' => ['nullable', 'string', 'max:1000'],
