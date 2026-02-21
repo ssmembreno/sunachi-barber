@@ -8,6 +8,7 @@ use App\Http\Controllers\Clients\ClientController;
 use App\Http\Controllers\Calendar\CalendarAdminController;
 use App\Http\Controllers\Calendar\CalendarClientController;
 use App\Http\Controllers\Barbers\BarberController;
+use App\Http\Controllers\Services\ServiceController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -49,6 +50,15 @@ Route::middleware(['auth', 'verified', 'role:admin,barber'])->group(function () 
     Route::post('/barbers', [BarberController::class, 'store'])->name('barbers.store');
     Route::get('/barbers/{barber}/edit', [BarberController::class, 'edit'])->name('barbers.edit');
     Route::put('/barbers/{barber}', [BarberController::class, 'update'])->name('barbers.update');
+    Route::delete('/barbers/{barber}', [BarberController::class, 'destroy'])->name('barbers.destroy');
+
+    // Services
+    Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
+    Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
+    Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
+    Route::get('/services/{service}/edit', [ServiceController::class, 'edit'])->name('services.edit');
+    Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
+    Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
 });
 
     // calendar clients

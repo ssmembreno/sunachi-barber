@@ -151,8 +151,9 @@ onBeforeUnmount(() => {
             </Link>
 
             <Link
+              :href="route('services.index')"
               class="flex items-center px-4 py-2 rounded-lg transition"
-              :class="route().current('services.index')
+              :class="route().current('services.*')
                 ? 'text-gray-900 bg-gray-100 dark:text-white dark:bg-gray-800'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800'"
             >

@@ -5,6 +5,7 @@ import { Link } from '@inertiajs/vue3'
 import MenuActions from '@/Components/UI/MenuActions.vue'
 import ModalCreateBarber from '@/Components/Barbers/ModalCreateBarber.vue'
 import ModalEditBarber from '@/Components/Barbers/ModalEditBarber.vue'
+import ModalDeleteBarber from '@/Components/Barbers/ModalDeleteBarber.vue'
 
 const props = defineProps({
     barbers: Array,
@@ -30,6 +31,15 @@ const openMenuFor = (id) => {
     } else {
         openMenuClientId.value = id
     }
+}
+
+// Delete
+const showDeleteModal = ref(false)
+
+const openDeleteModal = (barber) => {
+  closeAnyMenu()
+  selectedBarber.value = barber
+  showDeleteModal.value = true
 }
 
 const closeAnyMenu = () => {
@@ -132,6 +142,7 @@ const closeAnyMenu = () => {
                         @toggle="openMenuFor(barber.id)"
                         @close="closeAnyMenu"
                         @edit="openEditModal(barber)"
+                        @delete="openDeleteModal(barber)"
                       />
                     </td>
               </tr>
@@ -143,6 +154,7 @@ const closeAnyMenu = () => {
         </div>
       </div>
       <ModalEditBarber v-if="selectedBarber" :barber="selectedBarber" v-model="showEditModal" @updated="showEditModal = false" />
+      <ModalDeleteBarber v-if="selectedBarber" :barber="selectedBarber" v-model="showDeleteModal" @deleted="showDeleteModal = false" />
     </div>
   </AppLayout>
 </template>
