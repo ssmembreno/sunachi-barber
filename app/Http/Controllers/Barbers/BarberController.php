@@ -46,4 +46,11 @@ class BarberController extends Controller
 
         return redirect()->route('barbers.index');
     }
+
+    public function destroy(Barber $barber)
+    {
+        $barber->delete();
+
+        return redirect()->route('barbers.index');
+    }
 }
