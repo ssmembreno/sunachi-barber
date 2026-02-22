@@ -26,31 +26,22 @@ class CalendarAdminController extends Controller
         ]);
 
         $q = Appointment::query()
-            ->with(['client:id,name', 'service:id,name', 'barber:id,name'])
+            ->with(['client:id,name', 'items.service:id,name', 'barber:id,name'])
             ->where('start_at', '>=', $request->start)
             ->where('start_at', '<', $request->end);
-
-        // // filtrar por barbero
-        // if ($request->filled('barber_id')) {
-        //     $q->where('barber_id', $request->barber_id);
-        // }
-        
-        // // filtrar por estado
-        // if ($request->filled('status')) {
-        //     $q->where('status', $request->status);
-        // }
 
         $appointments = $q->get();
 
         // Formato FullCalendar
         $events = $appointments->map(function ($a) {
             $clientName = $a->client->name ?? 'Cliente';
-            $serviceName = $a->service->name ?? 'Servicio';
+            $serviceNames = $a->items->map(fn($item) => $item->service->name ?? 'Servicio')->implode(' + ');
+            if (empty($serviceNames)) $serviceNames = 'Servicio';
             $barberName = $a->barber->name ?? 'Barbero';
 
             return [
                 'id' => (string) $a->id,
-                'title' => $serviceName . ' - ' . $clientName . ' - ' . $barberName,
+                'title' => $serviceNames . ' - ' . $clientName . ' - ' . $barberName,
                 'start' => $a->start_at?->toISOString(),
                 'end' => $a->end_at?->toISOString(),
                 'extendedProps' => [
@@ -58,6 +49,7 @@ class CalendarAdminController extends Controller
                     'source' => $a->source,
                     'client_id' => $a->client_id,
                     'barber_id' => $a->barber_id,
+                    'price' => $a->items->sum('price'),
                 ],
             ];
         });
@@ -87,11 +79,26 @@ class CalendarAdminController extends Controller
         ], 422);
     }
         $appointment = Appointment::create([
-            ...$validated,
             'start_at' => $start,
             'end_at' => $end,
             'status' => 'confirmed',
+            'source' => $validated['source'],
+            'notes' => $validated['notes'] ?? null,
+            'client_notes' => $validated['client_notes'] ?? null,
+            'client_id' => $validated['client_id'],
+            'client_user_id' => $validated['client_user_id'] ?? null,
+            'created_by' => $validated['created_by'],
+            'barber_id' => $validated['barber_id'],
+            'meta' => $validated['meta'] ?? null,
         ]);
+        
+        foreach ($validated['services'] as $item) {
+            $appointment->items()->create([
+                'service_id' => $item['service_id'],
+                'price' => $item['price'],
+            ]);
+        }
+
         return response()->json([
             'message' => 'Cita creada correctamente.',
             'appointment' => $appointment->id,
@@ -114,9 +121,13 @@ class CalendarAdminController extends Controller
             'status' => 'required|string|in:confirmed,pending,cancelled,completed,noshow'
         ]);
 
-        $appointment->update([
-            'status' => $request->status
-        ]);
+        $updateData = ['status' => $request->status];
+        if ($request->status === 'cancelled') {
+            $updateData['cancelled_at'] = now();
+            $updateData['cancel_reason'] = 'Cancelado por administrador';
+        }
+
+        $appointment->update($updateData);
 
         return response()->json([
             'message' => 'Estado actualizado correctamente.',

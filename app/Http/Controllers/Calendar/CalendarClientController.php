@@ -24,7 +24,7 @@ class CalendarClientController extends Controller
         $user = Auth::user();
 
         if ($user) {
-            $lastReservations = Appointment::with(['service', 'barber', 'client'])
+            $lastReservations = Appointment::with(['items.service', 'barber', 'client'])
                 ->where(function ($query) use ($user) {
                     $query->where('user_id', $user->id);
                     
@@ -54,7 +54,7 @@ class CalendarClientController extends Controller
         ]);
 
         $q = Appointment::query()
-            ->with(['service', 'client']) // Added client for email check
+            ->with(['items.service', 'client']) // Added client for email check
             ->where('start_at', '>=', $request->start)
             ->where('start_at', '<', $request->end)
             ->whereNotIn('status', ['cancelled']);
@@ -80,14 +80,15 @@ class CalendarClientController extends Controller
             }
 
             $title = 'Ocupado';
-            $serviceName = $a->service->name ?? 'Servicio';
+            $serviceNames = $a->items->map(fn($item) => $item->service->name ?? 'Servicio')->implode(' + ');
+            if (empty($serviceNames)) $serviceNames = 'Servicio';
 
             if ($isMine || $isAdmin) {
                  if ($isAdmin) {
                      $clientName = $a->client ? $a->client->name : 'Cliente';
-                     $title = "$clientName - $serviceName";
+                     $title = "$clientName - $serviceNames";
                  } else {
-                     $title = "Tu Cita: $serviceName";
+                     $title = "Tu Cita: $serviceNames";
                  }
             }
 
@@ -103,8 +104,8 @@ class CalendarClientController extends Controller
 
             // Add private details only if allowed
             if ($isMine || $isAdmin) {
-                $extendedProps['service_name'] = $serviceName;
-                $extendedProps['price'] = $a->service->price ?? null;
+                $extendedProps['service_name'] = $serviceNames;
+                $extendedProps['price'] = $a->items->sum('price');
                 $extendedProps['notes'] = $a->client_notes;
                 
                 // Add client info for admin or self? mainly for admin
@@ -130,75 +131,113 @@ class CalendarClientController extends Controller
     }
 
     public function store(Request $request)
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    $rules = [
-        'service_id' => ['required', 'integer', 'exists:services,id'],
-        'barber_id'  => ['required', 'integer', 'exists:barber,id'],
-        'start_at'   => ['required', 'date'],
-        'end_at'     => ['required', 'date', 'after:start_at'],
-        'client_notes' => ['nullable', 'string', 'max:1000'],
-    ];
+        $rules = [
+            'services' => ['required', 'array', 'min:1'],
+            'services.*.service_id' => ['required', 'integer', 'exists:services,id'],
+            'services.*.price' => ['required', 'numeric', 'min:0'],
+            'barber_id'  => ['required', 'integer', 'exists:barber,id'],
+            'start_at'   => ['required', 'date'],
+            'end_at'     => ['required', 'date', 'after:start_at'],
+            'client_notes' => ['nullable', 'string', 'max:1000'],
+        ];
 
-    // Si NO está logeado, pedimos nombre y teléfono
-    if (!$user) {
-        $rules['client_name']  = ['required', 'string', 'max:255'];
-        $rules['client_phone'] = ['required', 'string', 'max:20'];
-    }
+        // Si NO está logeado, pedimos nombre y teléfono
+        if (!$user) {
+            $rules['client_name']  = ['required', 'string', 'max:255'];
+            $rules['client_phone'] = ['required', 'string', 'max:20'];
+        }
 
-    $data = $request->validate($rules);
+        $data = $request->validate($rules);
 
-    $start = Carbon::parse($data['start_at']);
-    $end   = Carbon::parse($data['end_at']);
+        $start = Carbon::parse($data['start_at']);
+        $end   = Carbon::parse($data['end_at']);
 
-    // 1) Resolver CLIENT (logeado → por client_id, guest → por phone)
-    if ($user) {
-        if (!$user->client_id) {
-            throw ValidationException::withMessages([
-                'client' => 'Tu cuenta no tiene cliente asociado. Contacta con soporte.',
+        // 1) Resolver CLIENT (logeado → por client_id, guest → por phone)
+        if ($user) {
+            if (!$user->client_id) {
+                throw ValidationException::withMessages([
+                    'client' => 'Tu cuenta no tiene cliente asociado. Contacta con soporte.',
+                ]);
+            }
+            $client = Client::findOrFail($user->client_id);
+        } else {
+            $client = Client::firstOrCreate(
+                ['phone' => $data['client_phone']],
+                ['name' => $data['client_name']]
+            );
+        }
+
+        // 2) Bloquear solapes
+        $hasOverlap = Appointment::query()
+            ->where('barber_id', $data['barber_id'])
+            ->whereNotIn('status', ['cancelled'])
+            ->where(function ($q) use ($start, $end) {
+                $q->where('start_at', '<', $end)
+                  ->where('end_at', '>', $start);
+            })
+            ->exists();
+
+        if ($hasOverlap) {
+            return response()->json(['message' => 'Ese horario ya está ocupado.'], 422);
+        }
+
+        // 3) Crear cita
+        $appointment = Appointment::create([
+            'client_id' => $client->id,
+            'barber_id' => $data['barber_id'],
+            'start_at' => $start,
+            'end_at' => $end,
+            'status' => 'pending',
+            'source' => $user ? 'client_auth' : 'client_guest',
+            'client_notes' => $data['client_notes'] ?? null,
+            'user_id' => $user?->id,
+            'created_by' => $user?->id,
+        ]);
+
+        foreach ($data['services'] as $item) {
+            $appointment->items()->create([
+                'service_id' => $item['service_id'],
+                'price' => $item['price'],
             ]);
         }
-        $client = Client::findOrFail($user->client_id);
-    } else {
-        $client = Client::firstOrCreate(
-            ['phone' => $data['client_phone']],
-            ['name' => $data['client_name']]
-        );
+
+        return response()->json([
+            'message' => 'Reserva creada.',
+            'appointment' => $appointment->id,
+        ], 201);
     }
 
-    // 2) Bloquear solapes
-    $hasOverlap = Appointment::query()
-        ->where('barber_id', $data['barber_id'])
-        ->whereNotIn('status', ['cancelled'])
-        ->where(function ($q) use ($start, $end) {
-            $q->where('start_at', '<', $end)
-              ->where('end_at', '>', $start);
-        })
-        ->exists();
+    public function cancel(Request $request, Appointment $appointment)
+    {
+        $user = Auth::user();
 
-    if ($hasOverlap) {
-        return response()->json(['message' => 'Ese horario ya está ocupado.'], 422);
+        if (!$user) {
+            return response()->json(['message' => 'No autorizado'], 403);
+        }
+
+        $checkId = $appointment->user_id && (int)$appointment->user_id === (int)$user->id;
+        $checkClient = $user->client_id && (int)$appointment->client_id === (int)$user->client_id;
+        $checkEmail = $appointment->client && $user->email && strtolower($appointment->client->email) === strtolower($user->email);
+        
+        $isMine = $checkId || $checkClient || $checkEmail;
+
+        if (!$isMine) {
+            return response()->json(['message' => 'No autorizado para cancelar esta cita'], 403);
+        }
+
+        if ($appointment->status === 'cancelled') {
+            return response()->json(['message' => 'La cita ya estaba cancelada'], 422);
+        }
+
+        $appointment->update([
+            'status' => 'cancelled',
+            'cancelled_at' => now(),
+            'cancel_reason' => 'Cancelado por el cliente',
+        ]);
+
+        return response()->json(['message' => 'Reserva cancelada correctamente']);
     }
-
-    // 3) Crear cita
-    $appointment = Appointment::create([
-        'client_id' => $client->id,
-        'barber_id' => $data['barber_id'],
-        'service_id' => $data['service_id'],
-        'start_at' => $start,
-        'end_at' => $end,
-        'status' => 'pending',
-        'source' => $user ? 'client_auth' : 'client_guest',
-        'client_notes' => $data['client_notes'] ?? null,
-
-        'user_id' => $user?->id,
-        'created_by' => $user?->id,
-    ]);
-
-    return response()->json([
-        'message' => 'Reserva creada.',
-        'appointment' => $appointment->id,
-    ], 201);
-}
 }
