@@ -112,6 +112,23 @@ async function updateStatus(newStatus) {
   }
 }
 
+async function cancelClientReservation() {
+  if (!selectedEvent.value) return
+  
+  if (!confirm('¿Estás seguro que deseas cancelar tu cita? Esta acción no se puede deshacer.')) return;
+  
+  try {
+    const id = selectedEvent.value.id
+    await axios.post(route('booking.appointments.cancel', id))
+    
+    refreshEvents()
+    closeModal()
+  } catch (error) {
+    console.error('Error al cancelar la cita:', error)
+    alert('No se pudo cancelar la cita. ' + (error.response?.data?.message || ''))
+  }
+}
+
 function goToday() {
   const api = calendarRef.value?.getApi()
   api?.today()
@@ -549,13 +566,13 @@ const calendarOptions = computed(() => ({
                 <!-- Detalles adicionales solo para el dueño -->
                 <div v-if="selectedEvent?.extendedProps?.is_mine" class="mb-6 rounded-xl bg-amber-500/10 border border-amber-500/20 p-4">
                     <div class="grid grid-cols-2 gap-4 text-sm">
-                        <div v-if="selectedEvent.extendedProps.service_name">
-                            <span class="block text-zinc-500 text-xs uppercase font-bold">Servicio</span>
+                        <div v-if="selectedEvent.extendedProps.service_name" class="col-span-2">
+                            <span class="block text-zinc-500 text-xs uppercase font-bold">Servicios</span>
                             <span class="text-zinc-200 font-medium">{{ selectedEvent.extendedProps.service_name }}</span>
                         </div>
                         <div v-if="selectedEvent.extendedProps.price">
-                            <span class="block text-zinc-500 text-xs uppercase font-bold">Precio</span>
-                            <span class="text-zinc-200 font-medium">${{ selectedEvent.extendedProps.price }}</span>
+                            <span class="block text-zinc-500 text-xs uppercase font-bold">Precio Total</span>
+                            <span class="text-zinc-200 font-medium">{{ selectedEvent.extendedProps.price }} Lps</span>
                         </div>
                         <div v-if="selectedEvent.extendedProps.notes" class="col-span-2">
                              <span class="block text-zinc-500 text-xs uppercase font-bold">Notas</span>
@@ -589,13 +606,32 @@ const calendarOptions = computed(() => ({
                             >
                                 No asistió
                             </button>
-                        </div>
 
+                            <button
+                                v-if="['pending', 'confirmed'].includes(selectedEvent?.extendedProps?.status)"
+                                type="button"
+                                class="col-span-2 rounded-lg bg-zinc-800 text-red-500 border border-red-500/40 px-4 py-2 text-sm font-bold uppercase tracking-wide hover:bg-red-500 hover:text-white transition-colors"
+                                @click="updateStatus('cancelled')"
+                            >
+                                Cancelar Cita (Admin)
+                            </button>
+                        </div>
+                     </template>
+
+                     <template v-else-if="selectedEvent?.extendedProps?.is_mine">
+                          <button
+                            v-if="['pending', 'confirmed'].includes(selectedEvent?.extendedProps?.status)"
+                            type="button"
+                            class="w-full mb-3 rounded-lg bg-zinc-800 text-red-500 border border-red-500/40 px-4 py-2 text-sm font-bold uppercase tracking-wide hover:bg-red-500 hover:text-white transition-colors"
+                            @click="cancelClientReservation"
+                          >
+                            Cancelar mi cita
+                          </button>
                      </template>
 
                       <button
                         type="button"
-                        class="px-6 py-3 rounded-lg border border-zinc-700 text-zinc-300 font-bold uppercase tracking-wide text-sm hover:bg-zinc-800 hover:text-white transition-colors"
+                        class="px-6 py-3 rounded-lg border border-zinc-700 text-zinc-300 font-bold uppercase tracking-wide text-sm hover:bg-zinc-800 hover:text-white transition-colors w-full"
                         @click="closeModal"
                       >
                         Cerrar

@@ -9,6 +9,8 @@ use App\Http\Controllers\Calendar\CalendarAdminController;
 use App\Http\Controllers\Calendar\CalendarClientController;
 use App\Http\Controllers\Barbers\BarberController;
 use App\Http\Controllers\Services\ServiceController;
+use App\Http\Controllers\Sales\SalesController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -22,7 +24,8 @@ Route::get('/', function () {
 
 Route::middleware(['auth', 'verified', 'role:admin,barber'])->group(function () {
 
-    Route::get('/dashboard', function () {return Inertia::render('Dashboard');})->name('dashboard');   
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/export', [DashboardController::class, 'export'])->name('dashboard.export');
 
     // Calendar
     Route::get('/calendar', function() {return Inertia::render('Admin/Calendar/CalendarAdmin');})->name('calendar.admin');
@@ -59,13 +62,22 @@ Route::middleware(['auth', 'verified', 'role:admin,barber'])->group(function () 
     Route::get('/services/{service}/edit', [ServiceController::class, 'edit'])->name('services.edit');
     Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
     Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.destroy');
+
+
+    // Sales
+    Route::get('/sales', [SalesController::class, 'index'])->name('sales.index');
+    Route::get('/sales/create', [SalesController::class, 'create'])->name('sales.create');
+    Route::post('/sales', [SalesController::class, 'store'])->name('sales.store');
+    Route::get('/sales/{sale}/edit', [SalesController::class, 'edit'])->name('sales.edit');
+    Route::put('/sales/{sale}', [SalesController::class, 'update'])->name('sales.update');
+    Route::delete('/sales/{sale}', [SalesController::class, 'destroy'])->name('sales.destroy');
 });
 
     // calendar clients
     Route::get('/booking', [CalendarClientController::class, 'index'])->name('booking.index');
     Route::get('/booking/events', [CalendarClientController::class, 'events'])->name('booking.events');
     Route::post('/booking/appointments', [CalendarClientController::class, 'store'])->name('booking.appointments.store');
-
+    Route::post('/booking/appointments/{appointment}/cancel', [CalendarClientController::class, 'cancel'])->name('booking.appointments.cancel');
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

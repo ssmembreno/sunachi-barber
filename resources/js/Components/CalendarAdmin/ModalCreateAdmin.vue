@@ -15,13 +15,12 @@ const formData = ref({
   start_at: '',
   end_at: '',
   client_id: '',
-  service_id: '',
+  services: [{ service_id: '', price: 0 }],
   barber_id: '', // For now we'll pick the first user or let them choose
   status: 'confirmed',
   source: 'admin',
   notes: '',
   client_notes: '',
-  price: '',
   created_by: '',
 })
 
@@ -87,15 +86,23 @@ const handleSubmit = async () => {
 
 const close = () => {
   emit('update:modelValue', false)
+  formData.value.services = [{ service_id: '', price: 0 }]
 }
 
-// Update price when service changes
-watch(() => formData.value.service_id, (val) => {
-  const service = services.value.find(s => s.id === val)
+const addService = () => {
+  formData.value.services.push({ service_id: '', price: 0 })
+}
+
+const removeService = (index) => {
+  formData.value.services.splice(index, 1)
+}
+
+const updateServicePrice = (index, serviceId) => {
+  const service = services.value.find(s => s.id === serviceId)
   if (service) {
-    formData.value.price = service.price
+    formData.value.services[index].price = parseFloat(service.price)
   }
-})
+}
 </script>
 
 <template>
@@ -119,20 +126,45 @@ watch(() => formData.value.service_id, (val) => {
         <p v-if="errors.client_id" class="mt-1 text-xs text-red-500">{{ errors.client_id[0] }}</p>
       </div>
 
-      <!-- Servicio -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Servicio</label>
-        <select 
-          v-model="formData.service_id" 
-          class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-900 dark:border-gray-700"
-          :class="{ 'border-red-500': errors.service_id }"
-        >
-          <option value="">Seleccione un servicio</option>
-          <option v-for="service in services" :key="service.id" :value="service.id">
-            {{ service.name }} - ${{ service.price }}
-          </option>
-        </select>
-        <p v-if="errors.service_id" class="mt-1 text-xs text-red-500">{{ errors.service_id[0] }}</p>
+      <!-- Servicios Dinámicos -->
+      <div class="md:col-span-2">
+        <div class="flex justify-between items-center mb-1">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Servicios <span class="text-red-500">*</span></label>
+          <button type="button" @click="addService" class="text-xs flex items-center bg-blue-100 text-blue-700 dark:bg-gray-800 dark:text-blue-400 px-2 py-1 rounded hover:bg-blue-200 dark:hover:bg-gray-700 transition">
+            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+            Añadir Servicio
+          </button>
+        </div>
+        
+        <div class="space-y-3">
+          <div v-for="(item, index) in formData.services" :key="index" class="flex gap-2 items-start bg-gray-50 dark:bg-[#1c1c24] p-3 rounded-lg border border-gray-200 dark:border-gray-800">
+            <div class="flex-1">
+              <select
+                v-model="item.service_id"
+                @change="updateServicePrice(index, item.service_id)"
+                required
+                class="w-full rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-800 text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              >
+                <option value="" disabled>Selecciona un servicio</option>
+                <option v-for="service in services" :key="service.id" :value="service.id">{{ service.name }} - {{ service.price }} Lps</option>
+              </select>
+              <p v-if="errors[`services.${index}.service_id`]" class="text-red-500 text-xs mt-1">{{ errors[`services.${index}.service_id`][0] }}</p>
+            </div>
+            <div class="w-24">
+              <input
+                type="number"
+                step="0.01"
+                v-model="item.price"
+                required
+                placeholder="Precio"
+                class="w-full rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-800 text-gray-900 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              >
+            </div>
+            <button type="button" @click="removeService(index)" v-if="formData.services.length > 1" class="text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 p-2 transition-colors">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Barbero -->
@@ -172,17 +204,6 @@ watch(() => formData.value.service_id, (val) => {
           :class="{ 'border-red-500': errors.end_at }"
         />
         <p v-if="errors.end_at" class="mt-1 text-xs text-red-500">{{ errors.end_at[0] }}</p>
-      </div>
-
-      <!-- Precio -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Precio</label>
-        <input 
-          v-model="formData.price" 
-          type="number" 
-          step="0.01" 
-          class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-900 dark:border-gray-700"
-        />
       </div>
 
       <!-- Notas -->
