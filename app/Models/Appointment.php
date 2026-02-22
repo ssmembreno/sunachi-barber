@@ -20,7 +20,6 @@ class Appointment extends Model
         'cancelled_at',
         'cancel_reason',
         'client_id',
-        'service_id',
         'created_by',
         'barber_id',
         'meta',
@@ -53,8 +52,8 @@ class Appointment extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
-    public function service()
+    public function items()
     {
-        return $this->belongsTo(Services::class, 'service_id');
+        return $this->hasMany(AppointmentItem::class);
     }
 }
